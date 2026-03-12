@@ -1,0 +1,120 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model PortfolioProfile {
+  id              String           @id @default(cuid())
+  fullName        String
+  headline        String
+  tagline         String
+  location        String
+  email           String
+  phone           String
+  githubUrl       String
+  linkedInUrl     String
+  summary         String
+  availability    String
+  resumePath      String
+  focusAreas      String[]
+  stackHighlights String[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  stats           ProfileStat[]
+  experiences     Experience[]
+  projects        Project[]
+  education       Education[]
+  skillGroups     SkillGroup[]
+  certifications  Certification[]
+  languages       SpokenLanguage[]
+  interests       Interest[]
+}
+
+model ProfileStat {
+  id           String           @id @default(cuid())
+  value        String
+  label        String
+  description  String
+  displayOrder Int
+  profileId    String
+  profile      PortfolioProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Experience {
+  id           String           @id @default(cuid())
+  period       String
+  role         String
+  company      String
+  location     String
+  summary      String
+  highlights   String[]
+  stack        String[]
+  displayOrder Int
+  profileId    String
+  profile      PortfolioProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Project {
+  id           String           @id @default(cuid())
+  name         String
+  period       String
+  kind         String
+  summary      String
+  challenge    String?
+  highlights   String[]
+  stack        String[]
+  displayOrder Int
+  profileId    String
+  profile      PortfolioProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Education {
+  id           String           @id @default(cuid())
+  period       String
+  institution  String
+  degree       String
+  location     String
+  note         String?
+  displayOrder Int
+  profileId    String
+  profile      PortfolioProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model SkillGroup {
+  id           String           @id @default(cuid())
+  name         String
+  description  String
+  items        String[]
+  displayOrder Int
+  profileId    String
+  profile      PortfolioProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Certification {
+  id           String           @id @default(cuid())
+  name         String
+  issuer       String
+  displayOrder Int
+  profileId    String
+  profile      PortfolioProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model SpokenLanguage {
+  id           String           @id @default(cuid())
+  name         String
+  level        String
+  displayOrder Int
+  profileId    String
+  profile      PortfolioProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Interest {
+  id           String           @id @default(cuid())
+  label        String
+  displayOrder Int
+  profileId    String
+  profile      PortfolioProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}

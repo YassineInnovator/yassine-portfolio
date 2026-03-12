@@ -1,0 +1,22 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaClient } from '@prisma/client';
+
+function getAdapter() {
+  const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not set.');
+  }
+
+  return new PrismaPg({ connectionString });
+}
+
+@Injectable()
+export class PrismaService extends PrismaClient {
+  constructor() {
+    super({
+      adapter: getAdapter(),
+    });
+  }
+}
