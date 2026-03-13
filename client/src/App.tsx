@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { fetchPortfolio } from './lib/api';
+import {
+  appCopy,
+  localizePortfolio,
+  localizeRuntimeMessage,
+  type Locale,
+} from './lib/localization';
 import type { PortfolioResponse } from './types/portfolio';
 import './App.css';
 
-const sections = [
-  { href: '#projects', label: 'Projects' },
-  { href: '#experience', label: 'Experience' },
-  { href: '#skills', label: 'Skills' },
-  { href: '#education', label: 'Story' },
-  { href: '#contact', label: 'Contact' },
-];
+const localeStorageKey = 'portfolio-locale';
 
 function SectionIntro(props: {
   eyebrow: string;
@@ -28,6 +28,8 @@ function SectionIntro(props: {
 function App() {
   const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [language, setLanguage] = useState<Locale>('en');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -57,15 +59,58 @@ function App() {
     };
   }, []);
 
-  if (error) {
+  useEffect(() => {
+    const savedLocale = window.localStorage.getItem(localeStorageKey);
+
+    if (savedLocale === 'en' || savedLocale === 'fr') {
+      setLanguage(savedLocale);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(localeStorageKey, language);
+    document.documentElement.lang = language;
+    document.title = appCopy[language].metaTitle;
+  }, [language]);
+
+  const copy = appCopy[language];
+  const localizedError = error ? localizeRuntimeMessage(error, language) : null;
+
+  const languageSwitch = (
+    <div
+      className="language-switch"
+      role="group"
+      aria-label={copy.languageSwitcherLabel}
+    >
+      <button
+        type="button"
+        className={language === 'en' ? 'is-active' : undefined}
+        aria-pressed={language === 'en'}
+        onClick={() => setLanguage('en')}
+      >
+        EN
+      </button>
+      <button
+        type="button"
+        className={language === 'fr' ? 'is-active' : undefined}
+        aria-pressed={language === 'fr'}
+        onClick={() => setLanguage('fr')}
+      >
+        FR
+      </button>
+    </div>
+  );
+
+  if (localizedError) {
     return (
       <main className="status-view">
         <div className="status-card">
-          <span className="eyebrow">API required</span>
-          <h1>Portfolio data is offline</h1>
-          <p>{error}</p>
+          {languageSwitch}
+          <span className="eyebrow">{copy.status.errorEyebrow}</span>
+          <h1>{copy.status.errorTitle}</h1>
+          <p>{localizedError}</p>
           <a className="button-primary" href="mailto:elid.yass123@gmail.com">
-            Contact Yassine
+            {copy.status.errorCta}
           </a>
         </div>
       </main>
@@ -76,30 +121,58 @@ function App() {
     return (
       <main className="status-view">
         <div className="status-card">
-          <span className="eyebrow">Loading</span>
-          <h1>Assembling the portfolio</h1>
-          <p>Fetching profile data from the NestJS API.</p>
+          {languageSwitch}
+          <span className="eyebrow">{copy.status.loadingEyebrow}</span>
+          <h1>{copy.status.loadingTitle}</h1>
+          <p>{copy.status.loadingCopy}</p>
         </div>
       </main>
     );
   }
 
-  const { profile, stats, projects, experiences, skillGroups } = portfolio;
+  const localizedPortfolio = localizePortfolio(portfolio, language);
+  const { profile, stats, projects, experiences, skillGroups } = localizedPortfolio;
   const phoneHref = `tel:${profile.phone.replace(/\s+/g, '')}`;
-  const socialLinks = [
-    { label: 'GitHub', href: profile.githubUrl },
-    { label: 'LinkedIn', href: profile.linkedInUrl },
-  ];
 
   return (
     <div className="app-shell">
       <header className="site-header">
-        <a className="brand" href="#home">
+        <a
+          className="brand"
+          href="#home"
+          onClick={() => {
+            setMenuOpen(false);
+          }}
+        >
           YEI
         </a>
-        <nav className="site-nav" aria-label="Main navigation">
-          {sections.map((section) => (
-            <a key={section.href} href={section.href}>
+        <div className="header-actions">
+          {languageSwitch}
+          <button
+            type="button"
+            className="menu-toggle"
+            aria-expanded={menuOpen}
+            aria-controls="site-nav"
+            onClick={() => {
+              setMenuOpen((current) => !current);
+            }}
+          >
+            {menuOpen ? copy.closeMenu : copy.openMenu}
+          </button>
+        </div>
+        <nav
+          id="site-nav"
+          className={`site-nav ${menuOpen ? 'is-open' : ''}`}
+          aria-label={copy.navigationLabel}
+        >
+          {copy.sections.map((section) => (
+            <a
+              key={section.href}
+              href={section.href}
+              onClick={() => {
+                setMenuOpen(false);
+              }}
+            >
               {section.label}
             </a>
           ))}
@@ -116,10 +189,10 @@ function App() {
 
             <div className="cta-row">
               <a className="button-primary" href={profile.resumePath} download>
-                Download CV
+                {copy.hero.downloadCv}
               </a>
               <a className="button-secondary" href={`mailto:${profile.email}`}>
-                Email me
+                {copy.hero.emailMe}
               </a>
             </div>
 
@@ -127,20 +200,6 @@ function App() {
               <a href={`mailto:${profile.email}`}>{profile.email}</a>
               <span>{profile.location}</span>
               <a href={phoneHref}>{profile.phone}</a>
-            </div>
-
-            <div className="social-row">
-              {socialLinks.map((link) => (
-                <a
-                  key={link.label}
-                  className="social-link"
-                  href={link.href}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {link.label}
-                </a>
-              ))}
             </div>
 
             <div className="stack-row">
@@ -154,7 +213,7 @@ function App() {
 
           <div className="hero-card">
             <div className="hero-card-top">
-              <span className="hero-card-label">Current focus</span>
+              <span className="hero-card-label">{copy.hero.currentFocus}</span>
               <div className="hero-monogram">YE</div>
             </div>
             <p className="hero-card-copy">{profile.tagline}</p>
@@ -173,9 +232,9 @@ function App() {
 
         <section className="section-panel" id="focus">
           <SectionIntro
-            eyebrow="Profile"
-            title="A junior profile with clear direction"
-            copy="The goal is simple: ship modern web products, keep the delivery pipeline clean, and grow inside a strong engineering team."
+            eyebrow={copy.intros.focus.eyebrow}
+            title={copy.intros.focus.title}
+            copy={copy.intros.focus.copy}
           />
 
           <div className="focus-grid">
@@ -190,9 +249,9 @@ function App() {
 
         <section className="section-panel" id="projects">
           <SectionIntro
-            eyebrow="Projects"
-            title="Work that already reflects my target stack"
-            copy="These builds show the direction of the portfolio: TypeScript-heavy products, practical architecture choices, and a visible engineering process behind the UI."
+            eyebrow={copy.intros.projects.eyebrow}
+            title={copy.intros.projects.title}
+            copy={copy.intros.projects.copy}
           />
 
           <div className="project-grid">
@@ -226,9 +285,9 @@ function App() {
 
         <section className="section-panel" id="experience">
           <SectionIntro
-            eyebrow="Experience"
-            title="Internships across software, web, and security"
-            copy="The portfolio is junior by title, but not empty by practice. Each internship added a different layer: product delivery, security visibility, or direct web implementation."
+            eyebrow={copy.intros.experience.eyebrow}
+            title={copy.intros.experience.title}
+            copy={copy.intros.experience.copy}
           />
 
           <div className="timeline">
@@ -263,9 +322,9 @@ function App() {
 
         <section className="section-panel" id="skills">
           <SectionIntro
-            eyebrow="Stack"
-            title="Technical range with a TypeScript center of gravity"
-            copy="NestJS, React, and PostgreSQL sit at the center, but the wider stack already includes security tooling, cloud-minded workflows, and delivery automation."
+            eyebrow={copy.intros.skills.eyebrow}
+            title={copy.intros.skills.title}
+            copy={copy.intros.skills.copy}
           />
 
           <div className="skill-grid">
@@ -288,13 +347,13 @@ function App() {
         <section className="section-panel detail-layout" id="education">
           <div className="detail-column">
             <SectionIntro
-              eyebrow="Education"
-              title="Academic path"
-              copy="My current path combines software engineering depth with practical full-stack projects."
+              eyebrow={copy.intros.education.eyebrow}
+              title={copy.intros.education.title}
+              copy={copy.intros.education.copy}
             />
 
             <div className="detail-stack">
-              {portfolio.education.map((item) => (
+              {localizedPortfolio.education.map((item) => (
                 <article
                   key={`${item.institution}-${item.period}`}
                   className="detail-card"
@@ -313,16 +372,16 @@ function App() {
 
           <div className="detail-column">
             <SectionIntro
-              eyebrow="More"
-              title="Certifications, languages, and interests"
-              copy="A junior portfolio should still feel human. This section adds the signals around communication, language range, and personal energy."
+              eyebrow={copy.intros.more.eyebrow}
+              title={copy.intros.more.title}
+              copy={copy.intros.more.copy}
             />
 
             <div className="detail-stack">
               <article className="detail-card">
-                <h3>Certifications</h3>
+                <h3>{copy.detailTitles.certifications}</h3>
                 <ul className="compact-list">
-                  {portfolio.certifications.map((certification) => (
+                  {localizedPortfolio.certifications.map((certification) => (
                     <li key={certification.name}>
                       <span>{certification.name}</span>
                       <strong>{certification.issuer}</strong>
@@ -332,9 +391,9 @@ function App() {
               </article>
 
               <article className="detail-card">
-                <h3>Languages</h3>
+                <h3>{copy.detailTitles.languages}</h3>
                 <ul className="compact-list">
-                  {portfolio.languages.map((language) => (
+                  {localizedPortfolio.languages.map((language) => (
                     <li key={language.name}>
                       <span>{language.name}</span>
                       <strong>{language.level}</strong>
@@ -344,9 +403,9 @@ function App() {
               </article>
 
               <article className="detail-card">
-                <h3>Interests</h3>
+                <h3>{copy.detailTitles.interests}</h3>
                 <div className="chip-row">
-                  {portfolio.interests.map((interest) => (
+                  {localizedPortfolio.interests.map((interest) => (
                     <span key={interest} className="chip">
                       {interest}
                     </span>
@@ -359,14 +418,9 @@ function App() {
 
         <section className="section-panel contact-panel" id="contact">
           <div>
-            <span className="eyebrow">Contact</span>
-            <h2>Open to junior full-stack opportunities</h2>
-            <p>
-              I am looking for a 6-month internship from March 20, 2026. If your
-              team needs a motivated junior developer who already works with
-              NestJS, React, and PostgreSQL, this portfolio is ready for the
-              conversation.
-            </p>
+            <span className="eyebrow">{copy.contact.eyebrow}</span>
+            <h2>{copy.contact.title}</h2>
+            <p>{copy.contact.copy}</p>
           </div>
 
           <div className="contact-actions">
@@ -376,17 +430,6 @@ function App() {
             <a className="button-secondary" href={phoneHref}>
               {profile.phone}
             </a>
-            {socialLinks.map((link) => (
-              <a
-                key={link.label}
-                className="button-secondary"
-                href={link.href}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {link.label}
-              </a>
-            ))}
           </div>
         </section>
       </main>
